@@ -3,10 +3,18 @@ body {
   margin: 0;
   text-align: center;
   color: #293c4b;
+  padding: 20px;
 }
 
 h1 {
   font-size: 30px;
+}
+
+input { 
+  font-size: 30px;
+  text-align: center;
+  border: none;
+  font-weight: bold;
 }
 
 img {

@@ -16,14 +16,19 @@ type TimerDirection
 
 type alias Model =
     { count : Int
-    , timerActive : Bool
+    , active : Bool
     , direction : TimerDirection
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { count = 0, timerActive = False, direction = Down }, Cmd.none )
+    ( { count = 0
+      , active = False
+      , direction = Down
+      }
+    , Cmd.none
+    )
 
 
 
@@ -69,13 +74,18 @@ update msg model =
             ( { model | count = max 0 <| model.count - 1 }, Cmd.none )
 
         ToggleTimer ->
-            ( { model | timerActive = not model.timerActive }, Cmd.none )
+            ( { model | active = not model.active }, Cmd.none )
 
         ToggleDirection ->
             ( toggleDirection model, Cmd.none )
 
         SetCount (Ok newCount) ->
-            ( { model | count = newCount }, Cmd.none )
+            ( { model
+                | count = newCount
+                , active = True
+              }
+            , Cmd.none
+            )
 
         SetCount (Err err) ->
             ( model, Cmd.none )
@@ -102,7 +112,7 @@ view model =
             , onInput <| SetCount << String.toInt -- , onInput (\value -> SetCount (String.toInt value))
             ]
             []
-        , p [] [ text <| "Timer: " ++ toString model.timerActive ]
+        , p [] [ text <| "Timer: " ++ toString model.active ]
         , p [] [ text <| "Direction: " ++ toString model.direction ]
         , button [ onClick Increment ] [ text "Increment" ]
         , button [ onClick Decrement ] [ text "Decrement" ]
@@ -117,7 +127,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.timerActive then
+    if model.active then
         Time.every second Tick
     else
         Sub.none

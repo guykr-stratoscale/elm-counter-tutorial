@@ -1,19 +1,19 @@
 module Main exposing (..)
 
-import Html exposing (Html, text, div, h1, img)
-import Html.Attributes exposing (src)
+import Html exposing (Html, text, div, h1, img, button)
+import Html.Events exposing (onClick)
 
 
 ---- MODEL ----
 
 
 type alias Model =
-    {}
+    { count : Int }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( {}, Cmd.none )
+    ( { count = 0 }, Cmd.none )
 
 
 
@@ -21,12 +21,18 @@ init =
 
 
 type Msg
-    = NoOp
+    = Increment
+    | Decrement
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        Increment ->
+            ( { model | count = model.count + 1 }, Cmd.none )
+
+        Decrement ->
+            ( { model | count = max 0 <| model.count - 1 }, Cmd.none )
 
 
 
@@ -36,8 +42,9 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ img [ src "/logo.svg" ] []
-        , h1 [] [ text "Your Elm App is working!" ]
+        [ h1 [] [ text <| toString model.count ]
+        , button [ onClick Increment ] [ text "Increment" ]
+        , button [ onClick Decrement ] [ text "Decrement" ]
         ]
 
 

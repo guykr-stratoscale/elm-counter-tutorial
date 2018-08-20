@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html, text, div, h1, img, button, p, input)
 import Html.Events exposing (onClick, onInput)
-import Html.Attributes exposing (value, style)
+import Html.Attributes exposing (value, style, disabled)
 import Time exposing (Time, second)
 
 
@@ -14,18 +14,21 @@ type TimerDirection
     | Down
 
 
+type TimerStatus
+    = Off
+    | On TimerDirection
+
+
 type alias Model =
     { count : Int
-    , active : Bool
-    , direction : TimerDirection
+    , status : TimerStatus
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     ( { count = 0
-      , active = False
-      , direction = Down
+      , status = Off
       }
     , Cmd.none
     )
@@ -44,45 +47,55 @@ type Msg
     | Tick Time
 
 
-updateCount : Model -> Model
-updateCount model =
-    case model.direction of
+updateCount : Int -> TimerDirection -> Int
+updateCount count direction =
+    case direction of
         Up ->
-            { model | count = model.count + 1 }
+            count + 1
 
         Down ->
-            { model | count = max 0 <| model.count - 1 }
+            max 0 <| count - 1
 
 
-toggleDirection : Model -> Model
-toggleDirection model =
-    case model.direction of
+toggleDirection : Model -> TimerDirection -> Model
+toggleDirection model direction =
+    case direction of
         Up ->
-            { model | direction = Down }
+            { model | status = On Down }
 
         Down ->
-            { model | direction = Up }
+            { model | status = On Up }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ( { model | count = model.count + 1 }, Cmd.none )
+            ( { model | count = (updateCount model.count Up) }, Cmd.none )
 
         Decrement ->
-            ( { model | count = max 0 <| model.count - 1 }, Cmd.none )
+            ( { model | count = (updateCount model.count Down) }, Cmd.none )
 
         ToggleTimer ->
-            ( { model | active = not model.active }, Cmd.none )
+            case model.status of
+                Off ->
+                    ( { model | status = On Down }, Cmd.none )
+
+                On _ ->
+                    ( { model | status = Off }, Cmd.none )
 
         ToggleDirection ->
-            ( toggleDirection model, Cmd.none )
+            case model.status of
+                Off ->
+                    ( model, Cmd.none )
+
+                On direction ->
+                    ( toggleDirection model direction, Cmd.none )
 
         SetCount (Ok newCount) ->
             ( { model
                 | count = newCount
-                , active = True
+                , status = On Down
               }
             , Cmd.none
             )
@@ -97,7 +110,12 @@ update msg model =
         --         Err error ->
         --             ( model, Cmd.none )
         Tick _ ->
-            ( updateCount model, Cmd.none )
+            case model.status of
+                Off ->
+                    ( model, Cmd.none )
+
+                On direction ->
+                    ( { model | count = (updateCount model.count direction) }, Cmd.none )
 
 
 
@@ -112,12 +130,15 @@ view model =
             , onInput <| SetCount << String.toInt -- , onInput (\value -> SetCount (String.toInt value))
             ]
             []
-        , p [] [ text <| "Timer: " ++ toString model.active ]
-        , p [] [ text <| "Direction: " ++ toString model.direction ]
+        , p [] [ text <| "Timer: " ++ toString model.status ]
         , button [ onClick Increment ] [ text "Increment" ]
         , button [ onClick Decrement ] [ text "Decrement" ]
         , button [ onClick ToggleTimer ] [ text "Toggle Timer" ]
-        , button [ onClick ToggleDirection ] [ text "Toggle Direction" ]
+        , button
+            [ onClick ToggleDirection
+            , disabled (model.status == Off)
+            ]
+            [ text "Toggle Direction" ]
         ]
 
 
@@ -127,10 +148,12 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.active then
-        Time.every second Tick
-    else
-        Sub.none
+    case model.status of
+        Off ->
+            Sub.none
+
+        On _ ->
+            Time.every second Tick
 
 
 

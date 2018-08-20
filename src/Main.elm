@@ -47,8 +47,8 @@ type Msg
     | Tick Time
 
 
-updateCount : Int -> TimerDirection -> Int
-updateCount count direction =
+updateCount : TimerDirection -> Int -> Int
+updateCount direction count =
     case direction of
         Up ->
             count + 1
@@ -57,8 +57,18 @@ updateCount count direction =
             max 0 <| count - 1
 
 
-toggleDirection : Model -> TimerDirection -> Model
-toggleDirection model direction =
+increment : Int -> Int
+increment =
+    updateCount Up
+
+
+decrement : Int -> Int
+decrement =
+    updateCount Down
+
+
+toggleDirection : TimerDirection -> Model -> Model
+toggleDirection direction model =
     case direction of
         Up ->
             { model | status = On Down }
@@ -71,10 +81,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ( { model | count = (updateCount model.count Up) }, Cmd.none )
+            ( { model | count = (increment model.count) }, Cmd.none )
 
         Decrement ->
-            ( { model | count = (updateCount model.count Down) }, Cmd.none )
+            ( { model | count = (decrement model.count) }, Cmd.none )
 
         ToggleTimer ->
             case model.status of
@@ -90,18 +100,17 @@ update msg model =
                     ( model, Cmd.none )
 
                 On direction ->
-                    ( toggleDirection model direction, Cmd.none )
+                    ( model |> toggleDirection direction, Cmd.none )
 
         SetCount (Ok newCount) ->
             ( { model
                 | count = newCount
-                , status = On Down
               }
             , Cmd.none
             )
 
         SetCount (Err err) ->
-            ( model, Cmd.none )
+            model ! []
 
         -- SetCount result ->
         --     case result of
@@ -112,10 +121,11 @@ update msg model =
         Tick _ ->
             case model.status of
                 Off ->
-                    ( model, Cmd.none )
+                    -- (model, Cmd.none)
+                    model ! []
 
                 On direction ->
-                    ( { model | count = (updateCount model.count direction) }, Cmd.none )
+                    ( { model | count = (updateCount direction model.count) }, Cmd.none )
 
 
 
@@ -127,13 +137,20 @@ view model =
     div []
         [ input
             [ value <| toString model.count
+            , disabled (model.status /= Off)
             , onInput <| SetCount << String.toInt -- , onInput (\value -> SetCount (String.toInt value))
             ]
             []
         , p [] [ text <| "Timer: " ++ toString model.status ]
-        , button [ onClick Increment ] [ text "Increment" ]
-        , button [ onClick Decrement ] [ text "Decrement" ]
-        , button [ onClick ToggleTimer ] [ text "Toggle Timer" ]
+        , button [ onClick Increment ] [ text "+" ]
+        , button [ onClick Decrement ] [ text "-" ]
+        , button [ onClick ToggleTimer ]
+            [ text <|
+                if model.status == Off then
+                    "Start"
+                else
+                    "Stop"
+            ]
         , button
             [ onClick ToggleDirection
             , disabled (model.status == Off)
